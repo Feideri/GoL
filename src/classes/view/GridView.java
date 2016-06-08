@@ -19,8 +19,8 @@ public class GridView extends JPanel{
 		final protected int cellCountX;
 		final protected int cellCountY;
 		
-		final private int hLines[];
-		//final private int vLines[];
+		final private int hLines[][];
+		final private int vLines[][];
 		
 		private boolean cellState[][];
 		protected Rectangle view;
@@ -30,18 +30,19 @@ public class GridView extends JPanel{
 	
 		public GridView(){
 			
-			dim = new Dimension(400000, 400000);
+			this.dim = new Dimension(400000, 400000);
 			setPreferredSize(dim);
 			
-			cellSize = 10;
-			cellCountX = dim.width/cellSize;
-			cellCountY = dim.height/cellSize;
-			cellState = new boolean[cellCountX][cellCountY];
+			this.cellSize = 10;
+			this.sectSize = 10;
+			this.cellCountX = dim.width/cellSize;
+			this.cellCountY = dim.height/cellSize;
+			this.cellState = new boolean[cellCountX][cellCountY];
 			
-			hLines = new int[cellCountY];
-			for(int i = 0;i<cellCountY;i++)
-				hLines[i] = i*cellSize;
-			
+			this.hLines = new int[2][cellCountY];
+			this.vLines = new int[2][cellCountX];
+				
+			setLineTypes();	
 			/*
 			for(boolean row[]: cellState)
 			    java.util.Arrays.fill(row, true);
@@ -78,23 +79,56 @@ public class GridView extends JPanel{
                 });
 
 		}
+
+		/**
+		 * Sets line types for drawing.
+		 * Used for initialization of the object and for setting new sector sizes
+		 */
+		protected void setLineTypes() {
+			int midLine = (cellCountY/2);
+			int sectLine = midLine % sectSize; //first sector line
+			for(int i = 0;i < this.cellCountY;i++){
+				hLines[0][i] = i*this.cellSize;
+				if(i == this.cellCountY/2){
+					hLines[1][i] = 3;
+					sectLine += this.sectSize;
+				}
+				else if (i == sectLine){
+					this.hLines[1][i] = 1;
+					sectLine += sectSize;
+				}		
+				else
+					this.hLines[1][i] = 0;		
+			}
+			
+			midLine = (cellCountX/2);
+			sectLine = midLine % sectSize; //first sector line
+			for(int i = 0;i < cellCountX;i++){
+				this.vLines[0][i] = i*cellSize;
+				if(i == cellCountX/2){
+					this.vLines[1][i] = 3;
+					sectLine += sectSize;
+				}
+				else if (i == sectLine){
+					this.vLines[1][i] = 1;
+					sectLine += sectSize;
+				}		
+				else
+					this.vLines[1][i] = 0;		
+			}
+		}
 		
 		@Override
 		public void paintComponent(Graphics g) {
 			super.paintComponent(g);
 
 		    drawCells(g);
-		    //drawLines(g);
-		    //drawVertical(g);
-		    drawHorizontal(g);
-		    //drawSectors(g, sectSize);  
+		    drawHorizontal(g); 
+		    drawVertical(g);
 		}
-
-		
 	
-		
 		/**
-		 * Draws horizontal lines for the grid
+		 * Draws horizontal lines for the grid in the visible area
 		 * @param g
 		 */
 		
@@ -103,58 +137,62 @@ public class GridView extends JPanel{
 			int bottom = (this.view.y+this.view.height)/this.cellSize;
 			int leftEdge = this.view.x;
 			int rightEdge = this.view.x+this.view.width;
-			int mid = (hLines.length/2);
 			
-			if(bottom < cellCountY)
+			if(bottom < this.cellCountY)
 				bottom +=1;
-			
 			if(top > 0)
-				top -=1;
-			
+				top -=1;	
 			
 			g.setColor(Color.LIGHT_GRAY);
 		    for(int i = top; i < bottom;i++){
-		    	int posY = hLines[i];
-		    	if(i == (hLines.length/2)){
-		    		g.setColor(Color.RED);
+		    	int posY = this.hLines[0][i];
+		    	if(this.hLines[1][i] == 1){
+		    		g.setColor(Color.DARK_GRAY);
 		    		g.drawLine(leftEdge, posY, rightEdge, posY);
 		    		g.setColor(Color.LIGHT_GRAY);
 		    	}
-
+		    	else if(this.hLines[1][i] == 3){
+		    		g.setColor(Color.RED);
+		    		g.drawLine(leftEdge, posY, rightEdge, posY);
+		    		g.setColor(Color.LIGHT_GRAY);	
+		    	}
 		    	else
 		    		g.drawLine(leftEdge, posY, rightEdge, posY);
 		    }   
 		}
 		
-		
 		/**
-		 * Draws sector lines to the grid
+		 * Draws vertical lines for the grid in the visible area
 		 * @param g
-		 * @param size Integer amount of cells in a sector
 		 */
 		
-		private void drawSectors(Graphics g, int size) {
-			g.setColor(Color.GRAY);
+		private void drawVertical(Graphics g) {
+			int left = view.x/this.cellSize;
+			int right = (view.x+view.width)/this.cellSize;
+			int topEdge = this.view.y;
+			int bottomEdge = this.view.y+this.view.height;
 			
-			int midY = (int)Math.floor((this.cellCountY/2))*this.cellSize;
-			int midX = (int)Math.floor((this.cellCountX/2))*this.cellSize;
-			int offset = (size*this.cellSize);
+			if(left > 0)
+				left -=1;
+			if(right < this.cellCountX)
+				right +=1;
 			
-			for (int i = midY-offset; i >= 0;i-=offset){
-		    	g.drawLine(0, i, this.dim.width, i);
-		    }  
-		    
-		    for (int i = midY+offset; i <= this.dim.height;i+=offset){
-		    	g.drawLine(0, i, this.dim.width, i);
-		    }
-		    
-		    for (int i = midX-offset; i >= 0;i-=offset){
-		    	g.drawLine(i, 0, i, this.dim.height);
-		    }  
-		    
-		    for (int i = midX+offset; i <= this.dim.height;i+=offset){
-		    	g.drawLine(i, 0, i, this.dim.height);
-		    }
+			g.setColor(Color.LIGHT_GRAY);
+			for(int i = left; i < right;i++){
+				int posX = this.vLines[0][i];
+				if(this.vLines[1][i] == 1){
+		    		g.setColor(Color.DARK_GRAY);
+		    		g.drawLine(posX, topEdge, posX, bottomEdge);
+		    		g.setColor(Color.LIGHT_GRAY);
+		    	}
+				else if(this.vLines[1][i] == 3){
+		    		g.setColor(Color.RED);
+		    		g.drawLine(posX, topEdge, posX, bottomEdge);
+		    		g.setColor(Color.LIGHT_GRAY);	
+		    	}
+		    	else
+		    		g.drawLine(posX, topEdge, posX, bottomEdge);
+			}
 		}
 		
 		/**
@@ -184,32 +222,7 @@ public class GridView extends JPanel{
 
 		    		}
 		}
-		
-		
-		
-		/**
-		 * Draws vertical lines for the grid
-		 * @param g
-		 */
-		
-		private void drawVertical(Graphics g) {
-			int left = view.x/this.cellSize;
-			int right = (view.x+view.width)/this.cellSize;
-			
-			
-			for(int i = 0; i <= this.cellCountX;i++){
-		    	int posX = i * this.cellSize;
-		    	if(i == (int) Math.floor((this.cellCountX/2))){
-		    		g.setColor(Color.RED);
-		    		g.drawLine(posX, 0, posX, this.dim.height);
-		    		//g.drawLine(posX+1, 0, posX+1, this.dim.height);
-		    		g.setColor(Color.LIGHT_GRAY);
-		    	}
-		    	else
-		    		g.drawLine(posX, 0, posX, this.dim.height);	
-		    }
-		}
-		
+				
 		/**
 		 * Calculates coordinates from mouse X position
 		 * @param inY Double mouse position on the grid
@@ -255,6 +268,10 @@ public class GridView extends JPanel{
 			}
 				
 		}
+		/**
+		 * Gets the view area reference to the current view area
+		 * @param r Rectangle of the view area from the scrollpane viewport
+		 */
 		
 		public void getView(Rectangle r){
 			this.view = r;
